@@ -470,10 +470,13 @@ def disvae_feature_importance(
     random_seed: int = 1,
     batch_size: int = 300,
     n_plots: int = 20,
-    n_runs: int = 5,
+    #n_runs: int = 5,
+    n_runs: int = 2,
     dim_latent: int = 3,
-    n_epochs: int = 100,
-    beta_list: list = [1, 5, 10],
+    #n_epochs: int = 100,
+    n_epochs: int = 2,
+    #beta_list: list = [1, 5, 10],
+    beta_list: list = [1],
 ) -> None:
     # Initialize seed and device
     np.random.seed(random_seed)
