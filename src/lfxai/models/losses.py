@@ -267,6 +267,7 @@ class EntropyLoss(BaseVAELoss):
         kl_loss = _kl_normal_loss(*latent_dist, storer)
         
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        W = 32
         baseline_image = torch.zeros((1, 1, W, W), device=device)
         gradshap = GradientShap(encoder.mu)
         entropy_loss = _entropy_loss(encoder.mu, 3, data, gradshap, baseline_image)
