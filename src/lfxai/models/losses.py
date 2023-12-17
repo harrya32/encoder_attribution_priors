@@ -14,7 +14,8 @@ from lfxai.utils.metrics import (
     entropy_saliency
 )
 
-from lfxai.explanations.features import attribute_auxiliary, attribute_individual_dim
+from lfxai.explanations.features import attribute_auxiliary, attribute_individual_dim, attribute_training
+from captum.attr import GradientShap, IntegratedGradients, Saliency
 
 LOSSES = ["betaH", "btcvae", "entropy"]
 RECON_DIST = ["bernoulli", "laplace", "gaussian"]
@@ -256,7 +257,7 @@ class EntropyLoss(BaseVAELoss):
         self.alpha = alpha
 
     def __call__(
-        self, data, recon_batch, latent_dist, is_train, storer, latent_sample=None
+        self, data, recon_batch, latent_dist, is_train, storer, encoder, latent_sample=None,
     ):
         storer = self._pre_call(is_train, storer)
 
@@ -265,7 +266,10 @@ class EntropyLoss(BaseVAELoss):
         )
         kl_loss = _kl_normal_loss(*latent_dist, storer)
         
-        entropy_loss = _entropy_loss(data, storer=storer)
+        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        baseline_image = torch.zeros((1, 1, W, W), device=device)
+        gradshap = GradientShap(encoder.mu)
+        entropy_loss = _entropy_loss(encoder.mu, 3, data, gradshap, baseline_image)
         
 
         anneal_reg = (
@@ -288,8 +292,10 @@ class EntropyLoss(BaseVAELoss):
         return "Entropy"
 
 
-def _entropy_loss(data, storer = None):
-    return
+def _entropy_loss(encoder, dim_latent, data, gradshap, baseline_image):
+    attr = attribute_training(encoder, dim_latent, data, gradshap, baseline_image)
+    entropy = compute_metrics(attr, 'Entropy')
+    return entropy
 
 def _reconstruction_loss(data, recon_data, distribution="bernoulli", storer=None):
     """

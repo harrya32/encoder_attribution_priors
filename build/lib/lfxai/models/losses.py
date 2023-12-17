@@ -9,7 +9,14 @@ from lfxai.utils.math import (
     matrix_log_density_gaussian,
 )
 
-LOSSES = ["betaH", "btcvae"]
+from lfxai.utils.metrics import (
+    compute_metrics,
+    entropy_saliency
+)
+
+from lfxai.explanations.features import attribute_auxiliary, attribute_individual_dim
+
+LOSSES = ["betaH", "btcvae", "entropy"]
 RECON_DIST = ["bernoulli", "laplace", "gaussian"]
 
 
@@ -27,6 +34,12 @@ def get_loss_f(loss_name, **kwargs_parse):
             alpha=kwargs_parse["btcvae_A"],
             beta=kwargs_parse["btcvae_B"],
             gamma=kwargs_parse["btcvae_G"],
+            **kwargs_all,
+        )
+    elif loss_name == "entropy":
+        return EntropyLoss(
+            kwargs_parse["n_data"],
+            alpha = kwargs_parse["entropy_A"],
             **kwargs_all,
         )
     else:
@@ -220,6 +233,63 @@ class BtcvaeLoss(BaseVAELoss):
     def __str__(self):
         return "TC"
 
+
+class EntropyLoss(BaseVAELoss):
+    """
+    Calculate new test loss that incorporates a saliency entropy penalty on top of ordinary VAE loss
+
+    Parameters:
+    -----------
+    n_data: int
+        Number of data in the training set
+    alpha : float
+        Weight of the entropy term.
+    is_mss : bool
+        Whether to use minibatch stratified sampling instead of minibatch
+        weighted sampling.
+    kwargs:
+        Additional arguments for `EntropyLoss`, e.g. rec_dist`.
+    """
+
+    def __init__(self, alpha=1.0, **kwargs):
+        super().__init__(**kwargs)
+        self.alpha = alpha
+
+    def __call__(
+        self, data, recon_batch, latent_dist, is_train, storer, latent_sample=None
+    ):
+        storer = self._pre_call(is_train, storer)
+
+        rec_loss = _reconstruction_loss(
+            data, recon_batch, storer=storer, distribution=self.rec_dist
+        )
+        kl_loss = _kl_normal_loss(*latent_dist, storer)
+        
+        entropy_loss = _entropy_loss(data, storer=storer)
+        
+
+        anneal_reg = (
+            linear_annealing(0, 1, self.n_train_steps, self.steps_anneal)
+            if is_train
+            else 1
+        )
+
+        # total loss
+        loss = rec_loss + anneal_reg * kl_loss + self.alpha * entropy_loss
+
+        if storer is not None:
+            storer["loss"].append(loss.item())
+            storer["kl_loss"].append(kl_loss.item())
+            storer["entropy_loss"].append(entropy_loss.item())
+
+        return loss
+
+    def __str__(self):
+        return "Entropy"
+
+
+def _entropy_loss(data, storer = None):
+    return
 
 def _reconstruction_loss(data, recon_data, distribution="bernoulli", storer=None):
     """

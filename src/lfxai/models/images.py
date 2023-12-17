@@ -915,14 +915,26 @@ class VAE(nn.Module):
         for image_batch, _ in tqdm(dataloader, unit="batches", leave=False):
             image_batch = image_batch.to(device)
             recon_batch, latent_dist, latent_batch = self.forward(image_batch)
-            loss = self.loss_f(
-                image_batch,
-                recon_batch,
-                latent_dist,
-                is_train=True,
-                storer=None,
-                latent_sample=latent_batch,
-            )
+
+            if "entropy" in self.name.lower():
+                loss = self.loss_f(
+                    image_batch,
+                    recon_batch,
+                    latent_dist,
+                    is_train=True,
+                    storer=None,
+                    latent_sample=latent_batch,
+                    encoder = self.encoder,
+                )
+            else:
+                loss = self.loss_f(
+                    image_batch,
+                    recon_batch,
+                    latent_dist,
+                    is_train=True,
+                    storer=None,
+                    latent_sample=latent_batch,
+                )
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
