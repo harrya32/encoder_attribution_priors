@@ -32,7 +32,7 @@ from lfxai.models.images import (
     EncoderBurgess,
     EncoderMnist,
 )
-from lfxai.models.losses import BetaHLoss, BtcvaeLoss
+from lfxai.models.losses import BetaHLoss, BtcvaeLoss, EntropyLoss
 from lfxai.models.pretext import Identity, Mask, RandomNoise
 from lfxai.utils.datasets import MaskedMNIST
 from lfxai.utils.feature_attribution import generate_masks
@@ -505,7 +505,7 @@ def disvae_feature_importance(
         os.makedirs(save_dir)
 
     # Define the computed metrics and create a csv file with appropriate headers
-    loss_list = [BetaHLoss(), BtcvaeLoss(is_mss=False, n_data=len(train_dataset))]
+    loss_list = [EntropyLoss(alpha=100), BetaHLoss(), BtcvaeLoss(is_mss=False, n_data=len(train_dataset))]
     metric_list = [
         pearson_saliency,
         spearman_saliency,

@@ -2,6 +2,7 @@ import abc
 
 import torch
 from torch.nn import functional as F
+from torch.utils.data import DataLoader
 
 from lfxai.utils.math import (
     log_density_gaussian,
@@ -252,9 +253,10 @@ class EntropyLoss(BaseVAELoss):
         Additional arguments for `EntropyLoss`, e.g. rec_dist`.
     """
 
-    def __init__(self, alpha=1.0, **kwargs):
+    def __init__(self, beta=4, alpha=1.0, **kwargs):
         super().__init__(**kwargs)
         self.alpha = alpha
+        self.beta = beta
 
     def __call__(
         self, data, recon_batch, latent_dist, is_train, storer, encoder, latent_sample=None,
@@ -270,7 +272,7 @@ class EntropyLoss(BaseVAELoss):
         W = 32
         baseline_image = torch.zeros((1, 1, W, W), device=device)
         gradshap = GradientShap(encoder.mu)
-        entropy_loss = _entropy_loss(encoder.mu, 3, data, gradshap, baseline_image)
+        entropy_loss = _entropy_loss(encoder.mu, 3, data, device, gradshap, baseline_image)
         
 
         anneal_reg = (
@@ -280,7 +282,7 @@ class EntropyLoss(BaseVAELoss):
         )
 
         # total loss
-        loss = rec_loss + anneal_reg * kl_loss + self.alpha * entropy_loss
+        loss = rec_loss + anneal_reg * self.beta * kl_loss + self.alpha * entropy_loss
 
         if storer is not None:
             storer["loss"].append(loss.item())
@@ -293,10 +295,12 @@ class EntropyLoss(BaseVAELoss):
         return "Entropy"
 
 
-def _entropy_loss(encoder, dim_latent, data, gradshap, baseline_image):
-    attr = attribute_training(encoder, dim_latent, data, gradshap, baseline_image)
-    entropy = compute_metrics(attr, 'Entropy')
-    return entropy
+def _entropy_loss(encoder, dim_latent, data, device, gradshap, baseline_image):
+    data_loader = torch.utils.data.DataLoader(data, batch_size=data.size()[0], shuffle=False)
+    attr = attribute_training(encoder, dim_latent, data_loader, device, gradshap, baseline_image)
+    #attr = attribute_training(encoder, dim_latent, data, device, gradshap, baseline_image)
+    entropy = compute_metrics(attr, [entropy_saliency])
+    return entropy[0]
 
 def _reconstruction_loss(data, recon_data, distribution="bernoulli", storer=None):
     """
