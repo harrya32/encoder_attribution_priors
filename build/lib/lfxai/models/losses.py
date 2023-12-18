@@ -253,9 +253,10 @@ class EntropyLoss(BaseVAELoss):
         Additional arguments for `EntropyLoss`, e.g. rec_dist`.
     """
 
-    def __init__(self, alpha=1.0, **kwargs):
+    def __init__(self, beta=4, alpha=1.0, **kwargs):
         super().__init__(**kwargs)
         self.alpha = alpha
+        self.beta = beta
 
     def __call__(
         self, data, recon_batch, latent_dist, is_train, storer, encoder, latent_sample=None,
@@ -281,7 +282,7 @@ class EntropyLoss(BaseVAELoss):
         )
 
         # total loss
-        loss = rec_loss + anneal_reg * kl_loss + self.alpha * entropy_loss
+        loss = rec_loss + anneal_reg * self.beta * kl_loss + self.alpha * entropy_loss
 
         if storer is not None:
             storer["loss"].append(loss.item())

@@ -987,10 +987,12 @@ class VAE(nn.Module):
         for epoch in range(n_epoch):
             train_loss = self.train_epoch(device, train_loader, optim)
             test_loss = self.test_epoch(device, test_loader)
-            logging.info(
-                f"Epoch {epoch + 1}/{n_epoch} \t "
-                f"Train loss {train_loss:.3g} \t Test loss {test_loss:.3g} \t "
-            )
+            #logging.info(
+            #    f"Epoch {epoch + 1}/{n_epoch} \t "
+            #    f"Train loss {train_loss:.3g} \t Test loss {test_loss:.3g} \t "
+            #)
+            print(f"Epoch {epoch + 1}/{n_epoch} \t ")
+            print(f"Train loss {train_loss:.3g} \t Test loss {test_loss:.3g} \t ")
             if test_loss >= best_test_loss:
                 waiting_epoch += 1
                 logging.info(
