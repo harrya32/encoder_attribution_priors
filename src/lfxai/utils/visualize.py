@@ -104,19 +104,31 @@ def plot_vae_saliencies(images: list, saliency: np.ndarray) -> plt.Figure:
     return fig
 
 
-def vae_box_plots(df: pd.DataFrame, metric_names: list) -> plt.Figure:
+def vae_box_plots(df: pd.DataFrame, metric_names: list, type=None) -> plt.Figure:
     fig, axs = plt.subplots(
         ncols=1, nrows=len(metric_names), figsize=(6, 4 * len(metric_names))
     )
-    for id_metric, metric in enumerate(metric_names):
-        sns.boxplot(
-            data=df,
-            x="Beta",
-            y=metric,
-            hue="Loss Type",
-            palette="colorblind",
-            ax=axs[id_metric],
-        )
+
+    if type == 'entropy':
+        for id_metric, metric in enumerate(metric_names):
+            sns.boxplot(
+                data=df,
+                x="Alpha",
+                y=metric,
+                hue="Loss Type",
+                palette="colorblind",
+                ax=axs[id_metric],
+            )
+    else:
+        for id_metric, metric in enumerate(metric_names):
+            sns.boxplot(
+                data=df,
+                x="Beta",
+                y=metric,
+                hue="Loss Type",
+                palette="colorblind",
+                ax=axs[id_metric],
+            )
     return fig
 
 
