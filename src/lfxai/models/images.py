@@ -916,7 +916,7 @@ class VAE(nn.Module):
             image_batch = image_batch.to(device)
             recon_batch, latent_dist, latent_batch = self.forward(image_batch)
 
-            if "entropy" in self.name.lower():
+            if "entropy" in self.name.lower() or 'pearson' in self.name.lower():
                 loss = self.loss_f(
                     image_batch,
                     recon_batch,
@@ -949,7 +949,7 @@ class VAE(nn.Module):
                 image_batch = image_batch.to(device)
                 recon_batch, latent_dist, latent_batch = self.forward(image_batch)
 
-                if "entropy" in self.name.lower():
+                if "entropy" in self.name.lower() or 'pearson' in self.name.lower():
                     loss = self.loss_f(
                         image_batch,
                         recon_batch,

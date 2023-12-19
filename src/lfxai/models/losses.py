@@ -260,7 +260,7 @@ class EntropyLoss(BaseVAELoss):
         self.beta = beta
 
     def __call__(
-        self, data, recon_batch, latent_dist, is_train, storer, encoder,
+        self, data, recon_batch, latent_dist, is_train, storer, encoder, latent_sample=None
     ):
         storer = self._pre_call(is_train, storer)
 
@@ -318,7 +318,7 @@ class PearsonLoss(BaseVAELoss):
         self.beta = beta
 
     def __call__(
-        self, data, recon_batch, latent_dist, is_train, storer, encoder,
+        self, data, recon_batch, latent_dist, is_train, storer, encoder, latent_sample=None
     ):
         storer = self._pre_call(is_train, storer)
 
