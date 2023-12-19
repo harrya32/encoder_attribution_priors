@@ -5,6 +5,6 @@
         32
     ],
     "latent_dim": 3,
-    "name": "Entropy-vae_alpha10_run1",
+    "name": "Entropy-vae_alpha1_run3",
     "num_pixels": 1024
 }

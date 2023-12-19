@@ -12,7 +12,8 @@ from lfxai.utils.math import (
 
 from lfxai.utils.metrics import (
     compute_metrics,
-    entropy_saliency
+    entropy_saliency,
+    pearson_saliency
 )
 
 from lfxai.explanations.features import attribute_auxiliary, attribute_individual_dim, attribute_training
@@ -238,7 +239,7 @@ class BtcvaeLoss(BaseVAELoss):
 
 class EntropyLoss(BaseVAELoss):
     """
-    Calculate new test loss that incorporates a saliency entropy penalty on top of ordinary VAE loss
+    Calculate entropy loss that incorporates a saliency entropy penalty on top of ordinary VAE loss
 
     Parameters:
     -----------
@@ -259,7 +260,7 @@ class EntropyLoss(BaseVAELoss):
         self.beta = beta
 
     def __call__(
-        self, data, recon_batch, latent_dist, is_train, storer, encoder, latent_sample=None,
+        self, data, recon_batch, latent_dist, is_train, storer, encoder,
     ):
         storer = self._pre_call(is_train, storer)
 
@@ -293,14 +294,79 @@ class EntropyLoss(BaseVAELoss):
 
     def __str__(self):
         return "Entropy"
+    
+class PearsonLoss(BaseVAELoss):
+    """
+    Calculate pearson loss that incorporates a saliency pearson correlation penalty on top of ordinary VAE loss
+
+    Parameters:
+    -----------
+    n_data: int
+        Number of data in the training set
+    alpha : float
+        Weight of the pearson correlation term.
+    is_mss : bool
+        Whether to use minibatch stratified sampling instead of minibatch
+        weighted sampling.
+    kwargs:
+        Additional arguments for `PearsonyLoss`, e.g. rec_dist`.
+    """
+
+    def __init__(self, beta=4, alpha=1.0, **kwargs):
+        super().__init__(**kwargs)
+        self.alpha = alpha
+        self.beta = beta
+
+    def __call__(
+        self, data, recon_batch, latent_dist, is_train, storer, encoder,
+    ):
+        storer = self._pre_call(is_train, storer)
+
+        rec_loss = _reconstruction_loss(
+            data, recon_batch, storer=storer, distribution=self.rec_dist
+        )
+        kl_loss = _kl_normal_loss(*latent_dist, storer)
+        
+        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        W = 32
+        baseline_image = torch.zeros((1, 1, W, W), device=device)
+        gradshap = GradientShap(encoder.mu)
+        pearson_loss = _pearson_loss(encoder.mu, 3, data, device, gradshap, baseline_image)
+        
+
+        anneal_reg = (
+            linear_annealing(0, 1, self.n_train_steps, self.steps_anneal)
+            if is_train
+            else 1
+        )
+
+        # total loss
+        loss = rec_loss + anneal_reg * self.beta * kl_loss + self.alpha * pearson_loss
+
+        if storer is not None:
+            storer["loss"].append(loss.item())
+            storer["kl_loss"].append(kl_loss.item())
+            storer["pearson_loss"].append(pearson_loss.item())
+
+        return loss
+
+    def __str__(self):
+        return "Pearson"
 
 
 def _entropy_loss(encoder, dim_latent, data, device, gradshap, baseline_image):
     data_loader = torch.utils.data.DataLoader(data, batch_size=data.size()[0], shuffle=False)
     attr = attribute_training(encoder, dim_latent, data_loader, device, gradshap, baseline_image)
-    #attr = attribute_training(encoder, dim_latent, data, device, gradshap, baseline_image)
+
     entropy = compute_metrics(attr, [entropy_saliency])
     return entropy[0]
+
+def _pearson_loss(encoder, dim_latent, data, device, gradshap, baseline_image):
+    data_loader = torch.utils.data.DataLoader(data, batch_size=data.size()[0], shuffle=False)
+    attr = attribute_training(encoder, dim_latent, data_loader, device, gradshap, baseline_image)
+    pearson_correlation = compute_metrics(attr, [pearson_saliency])
+    
+    return pearson_correlation[0]
 
 def _reconstruction_loss(data, recon_data, distribution="bernoulli", storer=None):
     """
