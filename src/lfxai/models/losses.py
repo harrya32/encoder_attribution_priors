@@ -13,10 +13,11 @@ from lfxai.utils.math import (
 from lfxai.utils.metrics import (
     compute_metrics,
     entropy_saliency,
-    pearson_saliency
+    pearson_saliency,
+    entropy_saliency_tensor
 )
 
-from lfxai.explanations.features import attribute_auxiliary, attribute_individual_dim, attribute_training
+from lfxai.explanations.features import attribute_auxiliary, attribute_individual_dim, attribute_training, tensor_attribution
 from captum.attr import GradientShap, IntegratedGradients, Saliency
 
 LOSSES = ["betaH", "btcvae", "entropy"]
@@ -284,6 +285,7 @@ class EntropyLoss(BaseVAELoss):
 
         # total loss
         loss = rec_loss + anneal_reg * self.beta * kl_loss + self.alpha * entropy_loss
+        loss = entropy_loss
 
         if storer is not None:
             storer["loss"].append(loss.item())
@@ -342,6 +344,7 @@ class PearsonLoss(BaseVAELoss):
 
         # total loss
         loss = rec_loss + anneal_reg * self.beta * kl_loss + self.alpha * pearson_loss
+        loss = torch.tensor(pearson_loss, requires_grad=True)
 
         if storer is not None:
             storer["loss"].append(loss.item())
@@ -354,16 +357,37 @@ class PearsonLoss(BaseVAELoss):
         return "Pearson"
 
 
+class PriorLoss(BaseVAELoss):
+    """
+    Calculate pearson loss that incorporates a saliency pearson correlation penalty on top of ordinary VAE loss
+
+    Parameters:
+    -----------
+    n_data: int
+        Number of data in the training set
+    alpha : float
+        Weight of the pearson correlation term.
+    is_mss : bool
+        Whether to use minibatch stratified sampling instead of minibatch
+        weighted sampling.
+    kwargs:
+        Additional arguments for `PearsonyLoss`, e.g. rec_dist`.
+    """
+
+    
+
+
+
 def _entropy_loss(encoder, dim_latent, data, device, gradshap, baseline_image):
     data_loader = torch.utils.data.DataLoader(data, batch_size=data.size()[0], shuffle=False)
-    attr = attribute_training(encoder, dim_latent, data_loader, device, gradshap, baseline_image)
+    attr = tensor_attribution(encoder, dim_latent, data_loader, device, gradshap, baseline_image)
 
-    entropy = compute_metrics(attr, [entropy_saliency])
+    entropy = compute_metrics(attr, [entropy_saliency_tensor])
     return entropy[0]
 
 def _pearson_loss(encoder, dim_latent, data, device, gradshap, baseline_image):
     data_loader = torch.utils.data.DataLoader(data, batch_size=data.size()[0], shuffle=False)
-    attr = attribute_training(encoder, dim_latent, data_loader, device, gradshap, baseline_image)
+    attr = tensor_attribution(encoder, dim_latent, data_loader, device, gradshap, baseline_image)
     pearson_correlation = compute_metrics(attr, [pearson_saliency])
     
     return pearson_correlation[0]

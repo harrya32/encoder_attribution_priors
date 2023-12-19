@@ -1,0 +1,10 @@
+{
+    "img_size": [
+        1,
+        32,
+        32
+    ],
+    "latent_dim": 3,
+    "name": "Pearson-vae_alpha10000_run1",
+    "num_pixels": 1024
+}

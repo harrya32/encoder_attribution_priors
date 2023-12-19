@@ -342,6 +342,7 @@ class PearsonLoss(BaseVAELoss):
 
         # total loss
         loss = rec_loss + anneal_reg * self.beta * kl_loss + self.alpha * pearson_loss
+        loss = torch.tensor(pearson_loss)
 
         if storer is not None:
             storer["loss"].append(loss.item())
@@ -352,6 +353,27 @@ class PearsonLoss(BaseVAELoss):
 
     def __str__(self):
         return "Pearson"
+
+
+class PriorLoss(BaseVAELoss):
+    """
+    Calculate pearson loss that incorporates a saliency pearson correlation penalty on top of ordinary VAE loss
+
+    Parameters:
+    -----------
+    n_data: int
+        Number of data in the training set
+    alpha : float
+        Weight of the pearson correlation term.
+    is_mss : bool
+        Whether to use minibatch stratified sampling instead of minibatch
+        weighted sampling.
+    kwargs:
+        Additional arguments for `PearsonyLoss`, e.g. rec_dist`.
+    """
+
+    
+
 
 
 def _entropy_loss(encoder, dim_latent, data, device, gradshap, baseline_image):

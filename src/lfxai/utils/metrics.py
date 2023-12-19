@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from scipy.stats import entropy, spearmanr
+from torch.distributions import Categorical
 
 
 def off_diagonal_sum(mat: np.ndarray) -> np.ndarray:
@@ -15,6 +16,7 @@ def off_diagonal_sum(mat: np.ndarray) -> np.ndarray:
     return np.sum(mat) - np.trace(mat)
 
 
+
 def pearson_saliency(saliency: np.ndarray) -> np.ndarray:
     """
     Computes the average Pearson correlation between different saliency maps
@@ -27,6 +29,20 @@ def pearson_saliency(saliency: np.ndarray) -> np.ndarray:
     latent_dim = saliency.shape[1]
     corr = np.corrcoef(saliency.swapaxes(0, 1).reshape(latent_dim, -1))
     return off_diagonal_sum(corr) / (latent_dim * (latent_dim - 1))
+
+def pearson_saliency_tensor(saliency):
+    """
+    Computes the average Pearson correlation between different saliency maps with gradients
+    Args:
+        saliency: saliency maps stacked together (indexed by the first tensor dimension)
+
+    Returns:
+        Pearson correlation between saliency maps
+    """
+    latent_dim = saliency.shape[1]
+    corr = torch.corrcoef(torch.reshape(torch.swapaxes(saliency, 0, 1), (latent_dim, -1)))
+
+    return (torch.sum(corr) - torch.trace(corr)) / (latent_dim * (latent_dim - 1))
 
 
 def spearman_saliency(saliency: np.ndarray) -> np.ndarray:
@@ -84,6 +100,27 @@ def entropy_saliency(saliency: np.ndarray) -> np.ndarray:
     saliency_filtered = saliency_reshaped[salient_pixels]
     entropy_ar = entropy(saliency_filtered, axis=1)
     return np.mean(entropy_ar)
+
+def entropy_saliency_tensor(saliency):
+    """
+    Computes the entropy of different saliency maps with gradients
+    Args:
+        saliency: saliency maps stacked together (indexed by the first tensor dimension)
+
+    Returns:
+        Entropy between saliency maps
+    """
+    latent_dim = saliency.shape[1]
+    saliency_reshaped = torch.reshape(torch.swapaxes(saliency, 1, -1), (-1, latent_dim))
+    salient_pixels = saliency_reshaped.sum(1) > 0
+
+    saliency_filtered = saliency_reshaped[salient_pixels]
+
+    entropy_ar = Categorical(probs = saliency_filtered).entropy()
+
+
+    return torch.mean(entropy_ar)
+
 
 
 def count_activated_neurons(saliency: np.ndarray) -> np.ndarray:
