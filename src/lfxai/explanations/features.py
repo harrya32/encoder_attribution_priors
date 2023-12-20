@@ -64,7 +64,7 @@ def tensor_attribution(
 ):
     attributions = []
     latents = []
-    for input_batch, _ in data_loader:
+    for input_batch in data_loader:
         input_batch = input_batch.to(device)
         attributions_batch = []
         latents.append(encoder(input_batch))

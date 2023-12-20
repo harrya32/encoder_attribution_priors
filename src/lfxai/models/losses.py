@@ -14,7 +14,8 @@ from lfxai.utils.metrics import (
     compute_metrics,
     entropy_saliency,
     pearson_saliency,
-    entropy_saliency_tensor
+    entropy_saliency_tensor,
+    pearson_saliency_tensor
 )
 
 from lfxai.explanations.features import attribute_auxiliary, attribute_individual_dim, attribute_training, tensor_attribution
@@ -388,7 +389,7 @@ def _entropy_loss(encoder, dim_latent, data, device, gradshap, baseline_image):
 def _pearson_loss(encoder, dim_latent, data, device, gradshap, baseline_image):
     data_loader = torch.utils.data.DataLoader(data, batch_size=data.size()[0], shuffle=False)
     attr = tensor_attribution(encoder, dim_latent, data_loader, device, gradshap, baseline_image)
-    pearson_correlation = compute_metrics(attr, [pearson_saliency])
+    pearson_correlation = compute_metrics(attr, [pearson_saliency_tensor])
     
     return pearson_correlation[0]
 
