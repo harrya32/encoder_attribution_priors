@@ -357,9 +357,9 @@ class PearsonLoss(BaseVAELoss):
         return "Pearson"
 
 
-class PriorLoss(BaseVAELoss):
+class TotalVariationLoss(BaseVAELoss):
     """
-    Calculate pearson loss that incorporates a saliency pearson correlation penalty on top of ordinary VAE loss
+    Calculate total variation loss loss that incorporates a total variation penalty on the saliency map on top of ordinary VAE loss
 
     Parameters:
     -----------
@@ -371,12 +371,59 @@ class PriorLoss(BaseVAELoss):
         Whether to use minibatch stratified sampling instead of minibatch
         weighted sampling.
     kwargs:
-        Additional arguments for `PearsonyLoss`, e.g. rec_dist`.
+        Additional arguments for `TotalVariationLoss`, e.g. rec_dist`.
     """
 
-    
+    def __init__(self, beta=1.0, alpha=1.0, **kwargs):
+        super().__init__(**kwargs)
+        self.alpha = alpha
+        self.beta = beta
+
+    def __call__(
+        self, data, recon_batch, latent_dist, is_train, storer, encoder, latent_sample=None
+    ):
+        storer = self._pre_call(is_train, storer)
+
+        rec_loss = _reconstruction_loss(
+            data, recon_batch, storer=storer, distribution=self.rec_dist
+        )
+        kl_loss = _kl_normal_loss(*latent_dist, storer)
+        
+        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        W = 32
+        baseline_image = torch.zeros((1, 1, W, W), device=device)
+        gradshap = GradientShap(encoder.mu)
+        total_var_loss = _total_variation_loss(encoder.mu, 3, data, device, gradshap, baseline_image)
+        
+
+        anneal_reg = (
+            linear_annealing(0, 1, self.n_train_steps, self.steps_anneal)
+            if is_train
+            else 1
+        )
+
+        # total loss
+        loss = rec_loss + anneal_reg * self.beta * kl_loss + self.alpha * total_var_loss
 
 
+        if storer is not None:
+            storer["loss"].append(loss.item())
+            storer["kl_loss"].append(kl_loss.item())
+            storer["total_var_loss"].append(total_var_loss.item())
+
+        return loss
+
+    def __str__(self):
+        return "TotalVariation"
+
+
+def _total_variation_loss(encoder, dim_latent, data, device, gradshap, baseline_image):
+    data_loader = torch.utils.data.DataLoader(data, batch_size=data.size()[0], shuffle=False)
+    attr = tensor_attribution(encoder, dim_latent, data_loader, device, gradshap, baseline_image)
+   
+    tv_h = ((attr[:,:,1:,:] - attr[:,:,:-1,:]).pow(2)).sum()
+    tv_w = ((attr[:,:,:,1:] - attr[:,:,:,:-1]).pow(2)).sum()    
+    return (tv_h + tv_w)
 
 def _entropy_loss(encoder, dim_latent, data, device, gradshap, baseline_image):
     data_loader = torch.utils.data.DataLoader(data, batch_size=data.size()[0], shuffle=False)
