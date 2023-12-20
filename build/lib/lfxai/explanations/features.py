@@ -54,6 +54,30 @@ def attribute_individual_dim(
     attributions = np.abs(np.expand_dims(latents, (2, 3)) * attributions)
     return attributions
 
+def tensor_attribution(
+    encoder: callable,
+    dim_latent: int,
+    data_loader: torch.utils.data.DataLoader,
+    device: torch.device,
+    attr_method: Attribution,
+    baseline: torch.Tensor,
+):
+    attributions = []
+    latents = []
+    for input_batch in data_loader:
+        input_batch = input_batch.to(device)
+        attributions_batch = []
+        latents.append(encoder(input_batch))
+        for dim in range(dim_latent):
+            attribution = (attr_method.attribute(input_batch, baseline, target=dim))
+            attributions_batch.append(attribution)
+        attributions.append(torch.cat(attributions_batch, axis=1))
+    latents = torch.cat(latents)
+    attributions = torch.cat(attributions)
+    attributions = torch.abs(torch.unsqueeze(torch.unsqueeze(latents, 2), 2) * attributions)
+    return attributions
+
+
 def attribute_training(
     encoder: callable,
     dim_latent: int,
