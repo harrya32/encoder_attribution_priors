@@ -256,7 +256,7 @@ class EntropyLoss(BaseVAELoss):
         Additional arguments for `EntropyLoss`, e.g. rec_dist`.
     """
 
-    def __init__(self, beta=4, alpha=1.0, **kwargs):
+    def __init__(self, beta=1, alpha=1.0, **kwargs):
         super().__init__(**kwargs)
         self.alpha = alpha
         self.beta = beta
@@ -315,7 +315,7 @@ class PearsonLoss(BaseVAELoss):
         Additional arguments for `PearsonyLoss`, e.g. rec_dist`.
     """
 
-    def __init__(self, beta=4, alpha=1.0, **kwargs):
+    def __init__(self, beta=1, alpha=1.0, **kwargs):
         super().__init__(**kwargs)
         self.alpha = alpha
         self.beta = beta
@@ -345,7 +345,7 @@ class PearsonLoss(BaseVAELoss):
 
         # total loss
         loss = rec_loss + anneal_reg * self.beta * kl_loss + self.alpha * pearson_loss
-        loss = torch.tensor(pearson_loss, requires_grad=True)
+        #loss = torch.abs(pearson_loss)
 
         if storer is not None:
             storer["loss"].append(loss.item())
