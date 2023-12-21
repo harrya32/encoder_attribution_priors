@@ -1,0 +1,10 @@
+{
+    "img_size": [
+        1,
+        32,
+        32
+    ],
+    "latent_dim": 3,
+    "name": "Beta-vae_beta1_run4",
+    "num_pixels": 1024
+}

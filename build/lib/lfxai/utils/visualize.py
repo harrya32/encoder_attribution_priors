@@ -109,7 +109,7 @@ def vae_box_plots(df: pd.DataFrame, metric_names: list, loss=None) -> plt.Figure
         ncols=1, nrows=len(metric_names), figsize=(6, 4 * len(metric_names))
     )
 
-    if loss == 'entropy':
+    if loss == 'entropy' or loss == 'pearson' or loss == 'total_variation':
         for id_metric, metric in enumerate(metric_names):
             sns.boxplot(
                 data=df,
