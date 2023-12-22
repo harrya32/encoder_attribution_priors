@@ -1,0 +1,10 @@
+{
+    "img_size": [
+        1,
+        32,
+        32
+    ],
+    "latent_dim": 3,
+    "name": "TotalVariation-vae_alpha0_run1",
+    "num_pixels": 1024
+}
