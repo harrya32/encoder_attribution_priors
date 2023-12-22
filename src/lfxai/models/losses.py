@@ -418,6 +418,8 @@ class TotalVariationLoss(BaseVAELoss):
 
 
 def _total_variation_loss(encoder, dim_latent, data, device, gradshap, baseline_image):
+    """Calculates the average total variation amongst the saliency maps of each latent
+    """
     data_loader = torch.utils.data.DataLoader(data, batch_size=data.size()[0], shuffle=False)
     attr = tensor_attribution(encoder, dim_latent, data_loader, device, gradshap, baseline_image)
 
@@ -426,6 +428,8 @@ def _total_variation_loss(encoder, dim_latent, data, device, gradshap, baseline_
 
 
 def _entropy_loss(encoder, dim_latent, data, device, gradshap, baseline_image):
+    """Calculates the entropy between the saliency maps of each latent
+    """
     data_loader = torch.utils.data.DataLoader(data, batch_size=data.size()[0], shuffle=False)
     attr = tensor_attribution(encoder, dim_latent, data_loader, device, gradshap, baseline_image)
 
@@ -433,6 +437,8 @@ def _entropy_loss(encoder, dim_latent, data, device, gradshap, baseline_image):
     return entropy[0]
 
 def _pearson_loss(encoder, dim_latent, data, device, gradshap, baseline_image):
+    """Calculates the average Pearson correlation amongst the saliency maps of each latent
+    """
     data_loader = torch.utils.data.DataLoader(data, batch_size=data.size()[0], shuffle=False)
     attr = tensor_attribution(encoder, dim_latent, data_loader, device, gradshap, baseline_image)
     pearson_correlation = compute_metrics(attr, [pearson_saliency_tensor])
