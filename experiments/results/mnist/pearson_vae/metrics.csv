@@ -1,4 +1,4 @@
-Loss Type,Alpha,Pearson Correlation,Entropy,Active Neurons
+Loss Type,Lambda,Pearson Correlation,Entropy,Active Neurons
 Pearson,0,0.2818607542970619,0.7152464,1.270994224564546
 Pearson,0,0.24850441114881594,0.6843259,1.2521488523761957
 Pearson,0,0.2698960902389789,0.70751065,1.2640361452699986

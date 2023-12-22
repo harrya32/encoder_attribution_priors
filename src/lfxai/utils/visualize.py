@@ -113,7 +113,7 @@ def vae_box_plots(df: pd.DataFrame, metric_names: list, loss=None) -> plt.Figure
         for id_metric, metric in enumerate(metric_names):
             sns.boxplot(
                 data=df,
-                x="Alpha",
+                x="Lambda",
                 y=metric,
                 hue="Loss Type",
                 palette="colorblind",
