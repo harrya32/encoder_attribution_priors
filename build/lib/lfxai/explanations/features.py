@@ -138,3 +138,35 @@ def attribute_auxiliary(
                     attr_method.attribute(inputs).detach().cpu().numpy()
                 )
     return np.concatenate(attributions)
+
+
+def attribute_auxiliary_tensor(
+    encoder: Module,
+    data_loader: torch.utils.data.DataLoader,
+    device: torch.device,
+    attr_method: Attribution,
+    baseline=None,
+):
+    attributions = []
+    for inputs in data_loader:
+
+        inputs = inputs.to(device)
+        auxiliary_encoder = AuxiliaryFunction(encoder, inputs)
+        attr_method.forward_func = auxiliary_encoder
+        if isinstance(attr_method, Saliency):
+            attributions.append(attr_method.attribute(inputs))
+        else:
+            if isinstance(baseline, torch.Tensor):
+                attributions.append(
+                    attr_method.attribute(inputs, baseline)
+                )
+            elif isinstance(baseline, Module):
+                baseline_inputs = baseline(inputs)
+                attributions.append(
+                    attr_method.attribute(inputs, baseline_inputs)
+                )
+            else:
+                attributions.append(
+                    attr_method.attribute(inputs)
+                )
+    return torch.cat(attributions)

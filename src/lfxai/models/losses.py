@@ -19,7 +19,7 @@ from lfxai.utils.metrics import (
     pearson_saliency_tensor
 )
 
-from lfxai.explanations.features import attribute_auxiliary, attribute_individual_dim, attribute_training, tensor_attribution
+from lfxai.explanations.features import attribute_auxiliary, attribute_individual_dim, attribute_training, tensor_attribution, attribute_auxiliary_tensor
 from captum.attr import GradientShap, IntegratedGradients, Saliency
 
 LOSSES = ["betaH", "btcvae", "entropy"]
@@ -394,7 +394,8 @@ class TotalVariationLoss(BaseVAELoss):
         W = 32
         baseline_image = torch.zeros((1, 1, W, W), device=device)
         gradshap = GradientShap(encoder.mu)
-        total_var_loss = _total_variation_loss(encoder.mu, 3, data, device, gradshap, baseline_image)
+
+        total_var_loss = _total_variation_loss(encoder.mu, data, device, gradshap, baseline_image)
         
 
         anneal_reg = (
@@ -417,11 +418,20 @@ class TotalVariationLoss(BaseVAELoss):
         return "TotalVariation"
 
 
-def _total_variation_loss(encoder, dim_latent, data, device, gradshap, baseline_image):
+def _total_variation_loss_old(encoder, dim_latent, data, device, gradshap, baseline_image):
     """Calculates the average total variation amongst the saliency maps of each latent
     """
     data_loader = torch.utils.data.DataLoader(data, batch_size=data.size()[0], shuffle=False)
     attr = tensor_attribution(encoder, dim_latent, data_loader, device, gradshap, baseline_image)
+
+    tv = TotalVariation().to(device) 
+    return tv(attr)
+
+def _total_variation_loss(encoder, data, device, gradshap, baseline_image):
+    """Calculates the average total variation amongst the saliency maps of each latent
+    """
+    data_loader = torch.utils.data.DataLoader(data, batch_size=data.size()[0], shuffle=False)
+    attr = attribute_auxiliary_tensor(encoder, data_loader, device, gradshap, baseline_image)
 
     tv = TotalVariation().to(device) 
     return tv(attr)
